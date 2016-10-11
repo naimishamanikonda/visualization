@@ -1,7 +1,7 @@
 ## TimeSeries: Visualization for Unemployment Rate Analysis
 Please click to watch the overview video.
 
-![ScreenShot](https://github.com/naimishamanikonda/visualization/blob/master/video.mp4)
+[![ScreenShot](https://github.com/naimishamanikonda/visualization/blob/master/video.mp4)](https://github.com/naimishamanikonda/visualization/blob/master/video.mp4)
 ### About the project
 The project focuses on analyzing the data for Unemployment rates for various states in usa over the period of 40 years 
 Namely from the years 1976 to 2016.The data was collected from the bureau of Labor statistics and the data is not seasonally adjusted
