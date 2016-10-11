@@ -20,7 +20,16 @@ path {
 font-family: sans-serif;
 font-size: 11px;
 }
+.area {
+  fill: steelblue;
+  clip-path: url(#clip);
+}
 
+.zoom {
+  cursor: move;
+  fill: none;
+  pointer-events: all;
+}
 
 .axis path,
 .axis line {
@@ -54,10 +63,18 @@ body {
 	left:800px;
 	top:350px;
 }
-
+.brush .extent {
+  stroke: #FFF;
+  shape-rendering: crispEdges;
+}
+ 
 </style>
 </head>
 <body>
+<div><h1>National Unemployment Rate in USA From 1976 to 2016</h1></div>
+<input type="checkbox" id="national-unemp" checked=true onclick="toggleNational(this)">National<br>
+<button type="button" id="selectAll" onclick="toggleSelectedAll(this)">selectall<br>
+<button type="button" id="clearAll" onclick="clearAll(this)">clearall<br>
 <script type="text/javascript">
 
 /*  This visualization was made possible by modifying code provided by:
@@ -78,19 +95,20 @@ var parseDate = d3.time.format("%d-%b-%y").parse;
 var parseDate2 = d3.time.format("%B-%Y").parse;
 var id;
 var jsonState;
-var mapwidth = 500;
-var mapheight = 350;
+var mapwidth = 1200;
+var mapheight = 700;
 var json1;
 var dataState;
 // D3 Projection
 var statename;
 selectedarray=[];
 var value;
+var dataNational=[];
  var dataArray = [];
  var dataAll=[];
 var projection = d3.geo.albersUsa()
-				   .translate([200, 200])    // translate to center of screen
-				   .scale([500]);          // scale things down so see entire US
+				   .translate([1000,100 ])    // translate to center of screen
+				   .scale([470]);          // scale things down so see entire US
         
 // Define path generator
 var path = d3.geo.path()               // path generator that will convert GeoJSON to SVG paths
@@ -98,26 +116,42 @@ var path = d3.geo.path()               // path generator that will convert GeoJS
 
 		
 // Define linear scale for output
-//var color = d3.scale.category20();
+var color = d3.scale.category20();
 // Set the dimensions of the canvas / graph
-var margin = {top: 35, right: 10, bottom: 30, left: 470},
-    width = 1200- margin.left - margin.right,
-    height = 440 - 15 - margin.bottom;
-
+var margin = {top: 35, right: 10, bottom: 100, left: 470},
+    margin2 ={top: 300, right: 10, bottom: 30, left: 470},
+    width = 950- margin.left - margin.right,
+    height = 370 - 15 - margin.bottom,
+    height2 = 370 - margin2.top - margin2.bottom;
 // Parse the date / time
 var parseDate = d3.time.format("%d-%b-%y").parse;
 var parseDate2 = d3.time.format("%B-%Y").parse;
 
 // Set the ranges
 var x = d3.time.scale().range([0, width]);
+var x2 = d3.time.scale().range([0, width]);
 var y = d3.scale.linear().range([height, 0]);
-
+var y2 = d3.scale.linear().range([height2, 0]);
 // Define the axes
 var xAxis = d3.svg.axis().scale(x)
-    .orient("bottom").ticks(5);
-
+    .orient("bottom").ticks(12);
+var xAxis2 = d3.svg.axis().scale(x2)
+    .orient("bottom");
 var yAxis = d3.svg.axis().scale(y)
-    .orient("left").ticks(5);
+    .orient("left").ticks(12);
+	
+	var brush = d3.svg.brush()
+    .x(x2) 
+    .on("brush", brushed);
+
+
+
+/*
+*/
+
+/*var focus = svg.append("g")
+    .attr("class", "focus")
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");*/
 
 // Define the line
 var valueline = d3.svg.line()
@@ -133,22 +167,34 @@ var svg = d3.select("body")
         .attr("height", height + margin.top + margin.bottom)
     .append("g")
         .attr("transform", 
-              "translate(" + 370 + "," + 10 + ")");
-var color = d3.scale.category20();
+              "translate(" + 20 + "," + 30 + ")");
+ //var color = d3.scale.ordinal().range(["#0a72ff", "#1eff06"]);
 //var legendText = ["1", "2", "3", "4","5","6","8","9","10","11","12"];
-
+var context = svg.append("g")
+    .attr("class", "context")
+    .attr("transform", "translate(" + 0 + "," + margin2.top + ")");
+svg.append("defs").append("clipPath")
+    .attr("id", "clip")
+  .append("rect")
+    .attr("width", width)
+    .attr("height", height);
+	
 //Create SVG element and append map to the SVG
 var mapsvg = d3.select("body")
 			.append("svg")
 			.attr("width", mapwidth)
 			.attr("height", mapheight);
-        
+ //var checksvg = d3.append("svg").attr("width", 50).attr("height", 30),
+ //checkBox = new d3CheckBox(); 
 // Append Div for tooltip to SVG
 var div = d3.select("body")
 		    .append("div")   
     		.attr("class", "tooltip")               
     		.style("opacity", 0);
-
+ /*var focuslineGroups = focus.selectAll("g")
+        .data(sources)
+      .enter().append("g");*/
+	  
 // Load in my states data!
 d3.csv("data.csv", function(data) {
 	color.domain([4,5,6,7,8,9,10,11,12,13]); // setting the range of the input data
@@ -182,6 +228,7 @@ d3.csv("data.csv", function(data) {
     // Scale the range of the data
     x.domain(d3.extent(dataArray[0], function(d) { return d.date; }));
     y.domain([0,20]);
+	x2.domain(x.domain());
 	svg.selectAll(".line")
       .data(dataArray).enter()
       .append("path")
@@ -194,15 +241,31 @@ d3.csv("data.csv", function(data) {
                 .transition().duration(250)
                 .attr("stroke-opacity", function(d2) {
                 if(d1==d2)
-                return 1;
+                return "1.0";
                 else
-                return 0.05;
+                return "0.2";
                 });
+				mapsvg.selectAll("path")
+			.style("stroke", "#fff")
+			.style("stroke-width", "1")//remove this .style fill part and comment bellow
+			.style("fill-opacity", function(d3){
+			if(d3.properties.name==d1[0].State)
+			return "1.0"
+			else 
+			return "0.2";
+			})
+			
+		
                 })
+				
                 .on("mouseout", function(d) {
                 svg.selectAll(".line")
                 .transition().duration(250)
-                .attr("stroke-opacity", 1);
+                .attr("stroke-opacity", "1.0");
+				mapsvg.selectAll("path")
+			.style("stroke", "#fff")
+			.style("stroke-width", "1")//remove this .style fill part and comment bellow
+			.style("fill-opacity","1.0")
                 });
 				svg.selectAll(".line").append("title")
         .text(function(d) {
@@ -225,15 +288,15 @@ d3.csv("data.csv", function(data) {
         .attr("x",0)
         .attr("y",9)
         .style("text-anchor", "middle")
-        .text("Unemployment Rate(%)");
+        .text("Unemployment(%)");
 
     // Add the Y Axis
     svg.append("g")
         .attr("class", "y axis")
         .call(yAxis);
 	svg.append("text")      // text label for the x axis
-        .attr("x",740 )
-        .attr("y", 400 )
+        .attr("x",400 )
+        .attr("y",310)
         .style("text-anchor", "middle")
         .text("Years from 1947 to 2016");
  // var dataArray = [];
@@ -302,35 +365,105 @@ d3.csv("data.csv", function(data) {
 				   .style("opacity", 0);   
 			})
 		.on("click", function(d){
-				toggleSelection(d.properties.name);
-				svg.selectAll(".line")
-				.filter(function(d1){
-				     
-					return isSelected(d1[0].State)
-					})
+				toggleSelection(d.properties.name,d3.select(this));
+				svg.selectAll(".line")	
 				.attr("d",function(d1){
 				return isSelected(d1[0].State)?valueline(d1):null;
 				
 				})
+				.attr("clip-path","url(#clip)")
 				
 			});
 
-	
+	/* focus.append("path")
+      .datum(data)
+      .attr("class", "area")
+      .attr("d", area);
+
+  focus.append("g")
+      .attr("class", "axis axis--x")
+      .attr("transform", "translate(0," + height + ")")
+      .call(xAxis);
+
+  focus.append("g")
+      .attr("class", "axis axis--y")
+      .call(yAxis);
+
+  context.append("path")
+      .datum(data)
+      .attr("class", "area")
+      .attr("d", area2);*/
+
+  context.append("g")
+      .attr("class", "axis axis--x")
+      .attr("transform", "translate(0," + height2 + ")")
+      .call(xAxis2);
+	context.append("rect")
+	.attr("fill","yellow")
+	.attr("height",height2)
+	.attr("width",width)
+context.append("g")
+    .attr("class", "x brush")
+    .call(brush)
+    .selectAll("rect")
+    .attr("height", height2) // Make brush rects same height 
+      .attr("fill", "#E6E7E8")
+		//.attr("width", width); 
+ /* svg.append("rect")
+      .attr("class", "zoom")
+      .attr("width", width)
+      .attr("height", height)
+      .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
+      .call(zoom);*/
 
 	});
+	
+	d3.csv("aggdata.csv", function(error, data) {    
+		 dataNational = []; 
+		 data.forEach(function(d) {
+		dataNational.push(d);
+		 });
+		  
+		 dataNational.forEach(function(d) {
+		d.date = parseDate2(d.Month+"-"+d.Year);
+		d.Unemployment = +d["Unemployment rates by State, not seasonally adjusted"];
+		 });
+
+
+		 dataNational.sort(function(a,b){
+		if (a.date<b.date)
+		return -1;
+		else if (a.date>b.date)
+		return 1;
+		else
+		return 0;
+		 })  
+		 svg.append("path")
+		.attr("class", "national")
+		.attr("stroke-width",4)
+		.attr("stroke","violet")
+		.attr("id", "blueLine")
+		.attr("d",valueline(dataNational))
+		;
+  
+		});
 	});
 	
-			function toggleSelection(statename){
+	
+
+			function toggleSelection(statename,e){
 	var bexist=false;
 		for(var i=0;i<selectedarray.length;i++){
 			if(statename==selectedarray[i]){
 			bexist=true;
 			selectedarray.splice(i,1);
 			//d3.selected(this).style("fill",blue)
+			e.style("fill","red");
 				}
 			}
 		if(!bexist){
 		selectedarray.push(statename);
+		e.style("fill","blue");
 		
 		}
 	}
@@ -344,7 +477,104 @@ d3.csv("data.csv", function(data) {
 			}
 			return bexist;
 	}
+	
+	
+	function toggleNational(e){
+		if(e.checked){
+		svg.select("path")
+		.attr("d",valueline(path));
+		}
+   
+			
+
+	}
+	
+	
+	function toggleSelectedAll(e){
+		{
+		svg.selectAll(".line")	
+				.attr("d",function(d1){
+				return valueline(d1)
+				
+				})
+		mapsvg.selectAll("path")
+			.style("stroke", "#fff")
+			.style("stroke-width", "1")//remove this .style fill part and comment bellow
+			.style("fill", "blue")
+		}
+		
+	}
+	function clearAll(e){
+		{
+		svg.selectAll(".line")	
+				.attr("d",function(d1){
+				return null;
+				
+				})
+		mapsvg.selectAll("path")
+			.style("stroke", "#fff")
+			.style("stroke-width", "1")//remove this .style fill part and comment bellow
+			.style("fill", "red")
+		
+		}
+		
+		
+	}
+	
+	function toggleNational(e){
+		if(e.checked){
+		svg.select(".national")
+		.attr("d",valueline(dataNational));
+		}
+		else{
+			svg.select(".national")
+		.attr("d",null);
+			}
+	}
+function brushed() {
+ x.domain(brush.empty() ? x2.domain() : brush.extent()); // If brush is empty then reset the Xscale domain to default, if not then make it the brush extent 
+
+    svg.select(".x.axis") // replot xAxis with transition when brush used
+          .transition()
+          .call(xAxis);
+svg.selectAll(".line")	
+				.attr("d",function(d1){
+				return isSelected(d1[0].State)?valueline(d1):null;
+				
+				})
+				var e=document.getElementById("national-unemp")
+				
+				if(e.checked){
+		svg.select(".national")
+		.attr("d",valueline(dataNational))
+		.attr("clip-path","url(#clip)")
+		}
+		else{
+			svg.select(".national")
+		.attr("d",null);
+			}
+			
+			
+
+}
+
+function zoomed() {
+  if (d3.event.sourceEvent && d3.event.sourceEvent.type === "brush") return; // ignore zoom-by-brush
+  var t = d3.event.transform;
+  x.domain(t.rescaleX(x2).domain());
+  focus.select(".area").attr("d", area);
+  focus.select(".axis--x").call(xAxis);
+  context.select(".brush").call(brush.move, x.range().map(t.invertX, t));
+}
+
+function type(d) {
+  d.date = parseDate(d.date);
+  d.unemplyment = +d.unemplyment;
+  return d;
+}
+	
 </script>
+
 </body>
 </html>
 
