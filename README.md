@@ -19,6 +19,8 @@ we have an interactive tool tip which gives the name of the state when it hoves 
 Some intresting finding in this are the national unemployment rate went down in 1980's in the first 3 years due to the great recession and fall of the mining industry the next fall im the data rate can be notice in the year of 2009,
 In December 2007, the national unemployment rate was 5.0 percent, and it had been at or below that rate for the previous 30 months. At the end of the recession, in June 2009, it was 9.5 percent. run the link bellow to get the visualization
 [online demo](https://naimishamanikonda.github.io/combined.html).
+###sources
+The data used in the project haas been obtained from beaurae of labor statistics 
 
 
 
